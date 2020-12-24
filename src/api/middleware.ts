@@ -105,12 +105,17 @@ export function allow(auth: IAuth): Function {
       const packageVersion = req.params.filename ? getVersionFromTarball(req.params.filename) : undefined;
       const remote: RemoteUser = req.remote_user;
       logger.trace({ action, user: remote.name }, `[middleware/allow][@{action}] allow for @{user}`);
-
+      
       auth['allow_' + action]({ packageName, packageVersion }, remote, function(error, allowed): void {
         req.resume();
         if (error) {
           next(error);
         } else if (allowed) {
+          //  call whitelisting func here to return true/false and pass packagename/ver to it
+          if(!allowedPackage(packageName)) {
+            next(error);
+            return;
+          }
           next();
         } else {
           // last plugin (that's our built-in one) returns either
@@ -120,6 +125,14 @@ export function allow(auth: IAuth): Function {
       });
     };
   };
+}
+
+export function allowedPackage(packageName){
+  //  console.log("Trying to access:" + packageName);
+  
+  if(packageName!=="ssri")
+    return false;
+  return true;
 }
 
 export interface MiddlewareError {
